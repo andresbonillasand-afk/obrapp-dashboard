@@ -96,18 +96,20 @@ async function fetchData(){
     const ok = await ensureAuth();
     if(!ok) return;
 
-    // Empresa seleccionada en el filtro
+    // ============ EMPRESA SELECCIONADA ============
     const empresaSeleccionada = document.getElementById('fEmpresa')?.value || '';
 
     rawCiclos = [];
     rawPanne  = [];
 
-    // Leer faenas del sistema anterior (colección raíz)
-    if (!empresaSeleccionada) {
-      const snapRaiz = await getDocs(collection(db, 'faenas'));
-      snapRaiz.forEach(doc => {
-        const faena = doc.data();
-      const faena = doc.data();
+    // Helper: procesa una faena y agrega sus ciclos/panne a los arrays
+    function procesarDoc(docData) {
+      const faena = docData;
+      const fecha     = faena.fecha || '';
+      const operador  = faena.usuarioOperador?.nombre || faena.usuario?.nombre || '';
+      const rut       = faena.usuarioOperador?.rut    || faena.usuario?.rut    || '';
+      const sector    = faena.usuarioOperador?.sector  || faena.usuario?.sector || '';
+      const deviceId  = faena.deviceId || '';
       const fecha     = faena.fecha || '';
       const operador  = faena.usuarioOperador?.nombre || faena.usuario?.nombre || '';
       const rut       = faena.usuarioOperador?.rut    || faena.usuario?.rut    || '';
@@ -164,171 +166,33 @@ async function fetchData(){
         });
       });
     
-      });
     }
 
-    // Leer faenas de organizaciones en Firebase
+    // 1. Sistema anterior (colección raíz /faenas) — solo si no hay empresa filtrada
+    if (!empresaSeleccionada) {
+      const snapRaiz = await getDocs(collection(db, 'faenas'));
+      snapRaiz.forEach(doc => procesarDoc(doc.data()));
+    }
+
+    // 2. Organizaciones multi-empresa
     if (empresaSeleccionada) {
       // Solo la empresa seleccionada
-      const faenasOrgSnap = await getDocs(
+      const faenasSnap = await getDocs(
         collection(db, 'organizaciones', empresaSeleccionada, 'faenas')
       );
-      faenasOrgSnap.forEach(doc => {
-        const faena = doc.data();
-      const faena = doc.data();
-      const fecha     = faena.fecha || '';
-      const operador  = faena.usuarioOperador?.nombre || faena.usuario?.nombre || '';
-      const rut       = faena.usuarioOperador?.rut    || faena.usuario?.rut    || '';
-      const sector    = faena.usuarioOperador?.sector  || faena.usuario?.sector || '';
-      const deviceId  = faena.deviceId || doc.id;
-
-      // Ciclos
-      const ciclos = faena.ciclosCompletados || faena.ciclos || [];
-      ciclos.forEach(c => {
-        const carguioSec = typeof c.tiempoCarga_seg  === 'number' ? c.tiempoCarga_seg  :
-                           typeof c.tiempoCarguio_seg === 'number' ? c.tiempoCarguio_seg : null;
-        const viajeSec   = typeof c.tiempoViaje_seg  === 'number' ? c.tiempoViaje_seg  : null;
-        const m3Val      = Number(c.camionCapacidadM3 || c.m3 || 0);
-        rawCiclos.push({
-          fecha,
-          operador,
-          rut,
-          sector,
-          deviceId,
-          vuelta:     c.vueltaNumero || c.vuelta || c.numeroVuelta || '',
-          excavadora: c.excavadoraNombre || c.excavadora || '',
-          camion:     c.camionNombre    || c.camion     || '',
-          material:   c.material        || c.tipoMaterial || '',
-          m3:         m3Val,
-          hora:       c.fechaHora || c.hora || c.timestampInicio
-                        ? (c.timestampInicio ? new Date(c.timestampInicio).toLocaleTimeString('es-CL') : c.hora || '') : '',
-          carguioSec,
-          viajeSec,
-          carguioStr: secondsToMMSS(carguioSec),
-          viajeStr:   secondsToMMSS(viajeSec)
-        });
-      });
-
-      // PANNE
-      const panne = faena.panneHistorial || faena.panne || [];
-      panne.forEach(p => {
-        const tsInicio = p.timestampInicio || p.horaInicio || null;
-        const tsFin    = p.timestampFin    || p.horaFin    || null;
-        const durSec   = typeof p.duracion_seg === 'number' ? p.duracion_seg :
-                         typeof p.duracion     === 'number' ? p.duracion     : null;
-        rawPanne.push({
-          fecha,
-          operador,
-          sector,
-          equipo:   p.equipoNombre || p.equipo  || p.nombre || p.equipoId || '',
-          tipo:     p.tipoEquipo   || p.tipo     || '',
-          inicio:   tsInicio ? (typeof tsInicio === 'number'
-                      ? new Date(tsInicio).toLocaleTimeString('es-CL')
-                      : tsInicio) : '—',
-          fin:      tsFin ? (typeof tsFin === 'number'
-                      ? new Date(tsFin).toLocaleTimeString('es-CL')
-                      : tsFin) : '—',
-          duracion: secondsToMMSS(durSec)
-        });
-      });
-    
-      });
+      faenasSnap.forEach(doc => procesarDoc(doc.data()));
     } else {
       // Todas las organizaciones
-      const orgsSnap = await getDocs(collection(db, 'organizaciones'));
-      for (const orgDoc of orgsSnap.docs) {
-        try {
+      try {
+        const orgsSnap = await getDocs(collection(db, 'organizaciones'));
+        for (const orgDoc of orgsSnap.docs) {
           const faenasOrgSnap = await getDocs(
             collection(db, 'organizaciones', orgDoc.id, 'faenas')
           );
-          faenasOrgSnap.forEach(doc => {
-            const faena = doc.data();
-      const faena = doc.data();
-      const fecha     = faena.fecha || '';
-      const operador  = faena.usuarioOperador?.nombre || faena.usuario?.nombre || '';
-      const rut       = faena.usuarioOperador?.rut    || faena.usuario?.rut    || '';
-      const sector    = faena.usuarioOperador?.sector  || faena.usuario?.sector || '';
-      const deviceId  = faena.deviceId || doc.id;
-
-      // Ciclos
-      const ciclos = faena.ciclosCompletados || faena.ciclos || [];
-      ciclos.forEach(c => {
-        const carguioSec = typeof c.tiempoCarga_seg  === 'number' ? c.tiempoCarga_seg  :
-                           typeof c.tiempoCarguio_seg === 'number' ? c.tiempoCarguio_seg : null;
-        const viajeSec   = typeof c.tiempoViaje_seg  === 'number' ? c.tiempoViaje_seg  : null;
-        const m3Val      = Number(c.camionCapacidadM3 || c.m3 || 0);
-        rawCiclos.push({
-          fecha,
-          operador,
-          rut,
-          sector,
-          deviceId,
-          vuelta:     c.vueltaNumero || c.vuelta || c.numeroVuelta || '',
-          excavadora: c.excavadoraNombre || c.excavadora || '',
-          camion:     c.camionNombre    || c.camion     || '',
-          material:   c.material        || c.tipoMaterial || '',
-          m3:         m3Val,
-          hora:       c.fechaHora || c.hora || c.timestampInicio
-                        ? (c.timestampInicio ? new Date(c.timestampInicio).toLocaleTimeString('es-CL') : c.hora || '') : '',
-          carguioSec,
-          viajeSec,
-          carguioStr: secondsToMMSS(carguioSec),
-          viajeStr:   secondsToMMSS(viajeSec)
-        });
-      });
-
-      // PANNE
-      const panne = faena.panneHistorial || faena.panne || [];
-      panne.forEach(p => {
-        const tsInicio = p.timestampInicio || p.horaInicio || null;
-        const tsFin    = p.timestampFin    || p.horaFin    || null;
-        const durSec   = typeof p.duracion_seg === 'number' ? p.duracion_seg :
-                         typeof p.duracion     === 'number' ? p.duracion     : null;
-        rawPanne.push({
-          fecha,
-          operador,
-          sector,
-          equipo:   p.equipoNombre || p.equipo  || p.nombre || p.equipoId || '',
-          tipo:     p.tipoEquipo   || p.tipo     || '',
-          inicio:   tsInicio ? (typeof tsInicio === 'number'
-                      ? new Date(tsInicio).toLocaleTimeString('es-CL')
-                      : tsInicio) : '—',
-          fin:      tsFin ? (typeof tsFin === 'number'
-                      ? new Date(tsFin).toLocaleTimeString('es-CL')
-                      : tsFin) : '—',
-          duracion: secondsToMMSS(durSec)
-        });
-      });
-    
-          });
-        } catch(e) { console.error('Error leyendo org', orgDoc.id, e); }
-      }
+          faenasOrgSnap.forEach(doc => procesarDoc(doc.data()));
+        }
+      } catch(e) { console.error('Error leyendo organizaciones:', e); }
     }
-      });
-
-      // PANNE
-      const panne = faena.panneHistorial || faena.panne || [];
-      panne.forEach(p => {
-        const tsInicio = p.timestampInicio || p.horaInicio || null;
-        const tsFin    = p.timestampFin    || p.horaFin    || null;
-        const durSec   = typeof p.duracion_seg === 'number' ? p.duracion_seg :
-                         typeof p.duracion     === 'number' ? p.duracion     : null;
-        rawPanne.push({
-          fecha,
-          operador,
-          sector,
-          equipo:   p.equipoNombre || p.equipo  || p.nombre || p.equipoId || '',
-          tipo:     p.tipoEquipo   || p.tipo     || '',
-          inicio:   tsInicio ? (typeof tsInicio === 'number'
-                      ? new Date(tsInicio).toLocaleTimeString('es-CL')
-                      : tsInicio) : '—',
-          fin:      tsFin ? (typeof tsFin === 'number'
-                      ? new Date(tsFin).toLocaleTimeString('es-CL')
-                      : tsFin) : '—',
-          duracion: secondsToMMSS(durSec)
-        });
-      });
-    });
 
     populateFilters();
     applyAndRender();
@@ -607,13 +471,11 @@ function setupEvents(){
 
 /* ============ INIT ============ */
 
-/* ============ CARGAR EMPRESAS PARA FILTRO ============ */
 async function cargarEmpresas() {
   try {
     if (!auth.currentUser) await ensureAuth();
     const orgsSnap = await getDocs(collection(db, 'organizaciones'));
     const select = document.getElementById('fEmpresa');
-    // Limpiar opciones previas excepto "Todas"
     while (select.options.length > 1) select.remove(1);
     orgsSnap.forEach(orgDoc => {
       const opt = document.createElement('option');
@@ -621,10 +483,7 @@ async function cargarEmpresas() {
       opt.textContent = orgDoc.data().nombre || orgDoc.id;
       select.appendChild(opt);
     });
-    console.log('Empresas cargadas:', orgsSnap.size);
-  } catch(e) {
-    console.error('Error cargando empresas:', e);
-  }
+  } catch(e) { console.error('Error cargando empresas:', e); }
 }
 
 setupEvents();
