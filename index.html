@@ -3,58 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OBRAPP — Dashboard Firebase</title>
+<title>OBRAPP — Dashboard Analytics</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
-  header{background:#1a2340;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
-  header h1{font-size:1.3rem;font-weight:700}
-  header p{font-size:.8rem;opacity:.7}
-  .hdr-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  #statusDot{width:10px;height:10px;border-radius:50%;background:#888;display:inline-block}
-  #statusText{font-size:.8rem;opacity:.8}
-  .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+
+  /* ── HEADER ── */
+  header{background:#1a2340;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  header h1{font-size:1.25rem;font-weight:700;letter-spacing:.5px}
+  header p{font-size:.75rem;opacity:.65;margin-top:2px}
+  .hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #statusDot{width:9px;height:9px;border-radius:50%;background:#888;display:inline-block;transition:background .4s}
+  #statusText{font-size:.78rem;opacity:.8}
+  .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;transition:opacity .2s}
+  .btn:hover{opacity:.85}
   .btn-primary{background:#27ae60;color:#fff}
-  .btn-outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
-  select.btn-outline{padding:6px 10px}
+  .btn-outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 10px}
 
-  #statusBar{background:#fff3cd;color:#856404;padding:10px 24px;font-size:.85rem;border-bottom:1px solid #ffc107;display:none}
+  /* ── NAV TABS ── */
+  .tabs{background:#fff;border-bottom:2px solid #e8e8e8;display:flex;gap:0;overflow-x:auto;padding:0 20px}
+  .tab{padding:13px 20px;font-size:.83rem;font-weight:600;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:color .2s,border-color .2s}
+  .tab.active{color:#1a2340;border-bottom-color:#27ae60}
+  .tab:hover{color:#1a2340}
 
-  .filters{background:#fff;padding:16px 24px;border-bottom:1px solid #e0e0e0}
-  .filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-  .field label{display:block;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:4px}
-  .field select,.field input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:.85rem;background:#fafafa}
-  .filter-actions{margin-top:12px;text-align:right}
-  .link-btn{background:none;border:none;color:#1a2340;font-size:.85rem;font-weight:600;cursor:pointer;text-decoration:underline}
+  /* ── STATUS BAR ── */
+  #statusBar{background:#fff3cd;color:#856404;padding:9px 24px;font-size:.82rem;border-bottom:1px solid #ffc107;display:none}
 
-  .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:20px 24px}
-  .kpi{background:#fff;border-radius:10px;padding:16px;border-left:4px solid #ccc;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-  .kpi .label{font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px}
-  .kpi .value{font-size:1.8rem;font-weight:700;color:#1a2340}
-  .kpi .sub{font-size:.72rem;color:#aaa;margin-top:4px}
-  .kpi:nth-child(1){border-color:#1a2340}
-  .kpi:nth-child(2){border-color:#27ae60}
-  .kpi:nth-child(3){border-color:#3498db}
-  .kpi:nth-child(4){border-color:#8e44ad}
-  .kpi:nth-child(5){border-color:#e67e22}
-  .kpi:nth-child(6){border-color:#e74c3c}
+  /* ── FILTERS ── */
+  .filters{background:#fff;padding:14px 24px;border-bottom:1px solid #e8e8e8;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .field label{display:block;font-size:.68rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+  .field select,.field input{width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;background:#fafafa;color:#333}
+  .field select:focus,.field input:focus{outline:none;border-color:#27ae60}
+  .filter-actions{margin-top:10px;text-align:right}
+  .link-btn{background:none;border:none;color:#1a2340;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:underline}
 
-  .charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0 24px 20px}
-  @media(max-width:700px){.charts{grid-template-columns:1fr}}
-  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-  .card h3{font-size:.85rem;font-weight:700;color:#333;margin-bottom:4px}
-  .card p{font-size:.75rem;color:#aaa;margin-bottom:14px}
-  canvas{max-height:260px}
+  /* ── PAGE SECTIONS ── */
+  .page{display:none;padding:20px 24px;gap:18px;flex-direction:column}
+  .page.active{display:flex}
 
-  .table-section{padding:0 24px 30px}
-  .table-wrap{overflow-x:auto;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-  table{width:100%;border-collapse:collapse;font-size:.82rem}
-  th{background:#1a2340;color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:.75rem;text-transform:uppercase}
-  td{padding:9px 12px;border-bottom:1px solid #f0f0f0}
-  tr:hover td{background:#f9f9f9}
-  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:700}
+  /* ── KPI ROW ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
+  .kpi{background:#fff;border-radius:10px;padding:16px 14px;border-left:4px solid #ccc;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .kpi .klabel{font-size:.63rem;font-weight:700;text-transform:uppercase;color:#999;letter-spacing:.5px;margin-bottom:5px}
+  .kpi .kvalue{font-size:1.85rem;font-weight:700;color:#1a2340;line-height:1}
+  .kpi .ksub{font-size:.7rem;color:#bbb;margin-top:4px}
+  .kpi-navy  {border-color:#1a2340}
+  .kpi-green {border-color:#27ae60}
+  .kpi-blue  {border-color:#3498db}
+  .kpi-purple{border-color:#8e44ad}
+  .kpi-orange{border-color:#e67e22}
+  .kpi-red   {border-color:#e74c3c}
+  .kpi-teal  {border-color:#16a085}
+
+  /* ── CHARTS GRID ── */
+  .charts-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .charts-1{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(max-width:720px){.charts-2{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card-hdr{margin-bottom:14px}
+  .card-hdr h3{font-size:.88rem;font-weight:700;color:#1a2340}
+  .card-hdr p{font-size:.72rem;color:#bbb;margin-top:2px}
+  canvas{max-height:280px;width:100%!important}
+  .chart-tall canvas{max-height:400px}
+
+  /* ── PRODUCTION BAR (horizontal style like app) ── */
+  .prod-bar-wrap{margin-top:8px}
+  .prod-bar-item{margin-bottom:10px}
+  .prod-bar-label{display:flex;justify-content:space-between;font-size:.78rem;color:#555;margin-bottom:3px}
+  .prod-bar-label span:last-child{font-weight:700;color:#1a2340}
+  .prod-bar-track{background:#f0f0f0;border-radius:20px;height:10px;overflow:hidden}
+  .prod-bar-fill{height:100%;border-radius:20px;transition:width .6s ease}
+
+  /* ── TABLE ── */
+  .table-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;background:#fff}
+  th{background:#1a2340;color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.3px}
+  td{padding:9px 12px;border-bottom:1px solid #f2f2f2;color:#444}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fafafa}
+  .empty{text-align:center;padding:36px;color:#bbb;font-size:.88rem}
+
+  /* ── PANNE BADGES ── */
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.3px}
+  .badge-warn{background:#fef3cd;color:#856404}
+  .badge-danger{background:#fde8e8;color:#c0392b}
   .badge-ok{background:#e8f5e9;color:#2e7d32}
-  .empty{text-align:center;padding:40px;color:#aaa;font-size:.9rem}
+
+  /* ── PANNE CARDS ── */
+  .panne-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .panne-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:4px solid #e74c3c}
+  .panne-card .pc-equipo{font-weight:700;font-size:.9rem;color:#1a2340}
+  .panne-card .pc-tipo{font-size:.72rem;color:#888;margin-top:2px;margin-bottom:10px}
+  .panne-card .pc-row{display:flex;justify-content:space-between;font-size:.75rem;color:#666;margin-top:4px}
+  .panne-card .pc-row span:last-child{font-weight:600;color:#333}
+  .panne-empty{text-align:center;padding:40px;color:#bbb;font-size:.88rem;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+
+  /* ── SECTION TITLE ── */
+  .section-title{font-size:.78rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.8px;margin-bottom:2px;padding:4px 0}
+
+  /* ── PROGRESS RING (mini) ── */
+  .stat-pair{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .stat-pair .sp-label{font-size:.75rem;color:#666;flex:1}
+  .stat-pair .sp-val{font-size:.85rem;font-weight:700;color:#1a2340}
+
+  /* scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:#f0f0f0}
+  ::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
 </style>
 </head>
 <body>
@@ -62,12 +118,12 @@
 <header>
   <div>
     <h1>📊 OBRAPP Analytics</h1>
-    <p>Dashboard conectado a Firebase · Datos en tiempo real desde todas las tablets</p>
+    <p>Dashboard conectado a Firebase · Datos en tiempo real</p>
   </div>
   <div class="hdr-right">
-    <span><span id="statusDot"></span> <span id="statusText">Sin actualizar aún</span></span>
+    <span><span id="statusDot"></span>&nbsp;<span id="statusText">Sin actualizar</span></span>
     <select class="btn btn-outline" id="autoSelect" onchange="setupAutoRefresh()">
-      <option value="0">Actualización manual</option>
+      <option value="0">Manual</option>
       <option value="60">Cada 1 min</option>
       <option value="300">Cada 5 min</option>
     </select>
@@ -77,82 +133,235 @@
 
 <div id="statusBar"></div>
 
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('resumen')">📈 Resumen</div>
+  <div class="tab" onclick="showTab('produccion')">🏗️ Producción</div>
+  <div class="tab" onclick="showTab('equipos')">🚛 Equipos</div>
+  <div class="tab" onclick="showTab('panne')">⚠️ PANNE</div>
+  <div class="tab" onclick="showTab('detalle')">📋 Detalle</div>
+</div>
+
+<!-- FILTERS -->
 <div class="filters">
   <div class="filter-grid">
-    <div class="field">
-      <label>Empresa</label>
-      <select id="fEmpresa"><option value="">Todas las empresas</option></select>
-    </div>
-    <div class="field">
-      <label>Operador</label>
-      <select id="fOperador"><option value="">Todos</option></select>
-    </div>
-    <div class="field">
-      <label>Sector</label>
-      <select id="fSector"><option value="">Todos</option></select>
-    </div>
-    <div class="field">
-      <label>Excavadora</label>
-      <select id="fExcavadora"><option value="">Todas</option></select>
-    </div>
-    <div class="field">
-      <label>Camión</label>
-      <select id="fCamion"><option value="">Todos</option></select>
-    </div>
-    <div class="field">
-      <label>Material</label>
-      <select id="fMaterial"><option value="">Todos</option></select>
-    </div>
-    <div class="field">
-      <label>Fecha desde</label>
-      <input type="date" id="fDesde">
-    </div>
-    <div class="field">
-      <label>Fecha hasta</label>
-      <input type="date" id="fHasta">
-    </div>
+    <div class="field"><label>Empresa</label>
+      <select id="fEmpresa"><option value="">Todas las empresas</option></select></div>
+    <div class="field"><label>Operador</label>
+      <select id="fOperador"><option value="">Todos</option></select></div>
+    <div class="field"><label>Sector</label>
+      <select id="fSector"><option value="">Todos</option></select></div>
+    <div class="field"><label>Excavadora</label>
+      <select id="fExcavadora"><option value="">Todas</option></select></div>
+    <div class="field"><label>Camión</label>
+      <select id="fCamion"><option value="">Todos</option></select></div>
+    <div class="field"><label>Material</label>
+      <select id="fMaterial"><option value="">Todos</option></select></div>
+    <div class="field"><label>Fecha desde</label>
+      <input type="date" id="fDesde"></div>
+    <div class="field"><label>Fecha hasta</label>
+      <input type="date" id="fHasta"></div>
   </div>
   <div class="filter-actions">
     <button class="link-btn" onclick="clearFilters()">Limpiar filtros</button>
   </div>
 </div>
 
-<div class="kpi-row">
-  <div class="kpi"><div class="label">Ciclos Totales</div><div class="value" id="kCiclos">—</div><div class="sub">Vueltas registradas</div></div>
-  <div class="kpi"><div class="label">M³ Movidos</div><div class="value" id="kM3">—</div><div class="sub">Volumen total</div></div>
-  <div class="kpi"><div class="label">Camiones Activos</div><div class="value" id="kCamiones">—</div><div class="sub">Con al menos 1 ciclo</div></div>
-  <div class="kpi"><div class="label">Excavadoras</div><div class="value" id="kExcavadoras">—</div><div class="sub">Con al menos 1 ciclo</div></div>
-  <div class="kpi"><div class="label">Operadores</div><div class="value" id="kOperadores">—</div><div class="sub">Capataces activos</div></div>
-  <div class="kpi"><div class="label">T. Prom. Ciclo</div><div class="value" id="kTiempo">—</div><div class="sub">Carguío + viaje</div></div>
+<!-- ════════════════ TAB: RESUMEN ════════════════ -->
+<div id="page-resumen" class="page active">
+
+  <div class="kpi-row">
+    <div class="kpi kpi-navy">
+      <div class="klabel">Ciclos Totales</div>
+      <div class="kvalue" id="kCiclos">—</div>
+      <div class="ksub">Vueltas registradas</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="klabel">M³ Movidos</div>
+      <div class="kvalue" id="kM3">—</div>
+      <div class="ksub">Volumen total</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="klabel">Camiones Activos</div>
+      <div class="kvalue" id="kCamiones">—</div>
+      <div class="ksub">Con al menos 1 ciclo</div>
+    </div>
+    <div class="kpi kpi-purple">
+      <div class="klabel">Excavadoras</div>
+      <div class="kvalue" id="kExcavadoras">—</div>
+      <div class="ksub">Con al menos 1 ciclo</div>
+    </div>
+    <div class="kpi kpi-orange">
+      <div class="klabel">Operadores</div>
+      <div class="kvalue" id="kOperadores">—</div>
+      <div class="ksub">Capataces activos</div>
+    </div>
+    <div class="kpi kpi-red">
+      <div class="klabel">T. Prom. Ciclo</div>
+      <div class="kvalue" id="kTiempo">—</div>
+      <div class="ksub">Carguío + viaje</div>
+    </div>
+    <div class="kpi kpi-teal">
+      <div class="klabel">Eventos PANNE</div>
+      <div class="kvalue" id="kPanne">—</div>
+      <div class="ksub">Total registrados</div>
+    </div>
+  </div>
+
+  <div class="charts-2">
+    <div class="card">
+      <div class="card-hdr"><h3>Producción diaria (m³)</h3><p>Volumen transportado por fecha</p></div>
+      <canvas id="chartDia"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><h3>Distribución por material</h3><p>m³ por tipo de material</p></div>
+      <canvas id="chartMaterial"></canvas>
+    </div>
+  </div>
+
 </div>
 
-<div class="charts">
-  <div class="card">
-    <h3>m³ movidos por día</h3>
-    <p>Volumen total transportado por fecha</p>
-    <canvas id="chartDia"></canvas>
+<!-- ════════════════ TAB: PRODUCCIÓN ════════════════ -->
+<div id="page-produccion" class="page">
+
+  <div class="kpi-row">
+    <div class="kpi kpi-green">
+      <div class="klabel">M³ Hoy</div>
+      <div class="kvalue" id="kM3Hoy">—</div>
+      <div class="ksub">Día actual</div>
+    </div>
+    <div class="kpi kpi-navy">
+      <div class="klabel">Ciclos Hoy</div>
+      <div class="kvalue" id="kCiclosHoy">—</div>
+      <div class="ksub">Vueltas del día</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="klabel">Prom. m³/ciclo</div>
+      <div class="kvalue" id="kPromM3">—</div>
+      <div class="ksub">Capacidad promedio</div>
+    </div>
+    <div class="kpi kpi-orange">
+      <div class="klabel">Sectores activos</div>
+      <div class="kvalue" id="kSectores">—</div>
+      <div class="ksub">Frentes de trabajo</div>
+    </div>
   </div>
-  <div class="card">
-    <h3>m³ por material</h3>
-    <p>Distribución de volumen por tipo de material</p>
-    <canvas id="chartMaterial"></canvas>
+
+  <div class="charts-2">
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>m³ por material</h3><p>Barras horizontales — volumen acumulado</p></div>
+      <canvas id="chartMatHoriz"></canvas>
+    </div>
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>Ciclos por sector</h3><p>Distribución de vueltas por frente de trabajo</p></div>
+      <canvas id="chartSector"></canvas>
+    </div>
   </div>
+
   <div class="card">
-    <h3>Ciclos por camión</h3>
-    <p>Número de vueltas por cada camión</p>
-    <canvas id="chartCamion"></canvas>
+    <div class="card-hdr"><h3>Producción diaria acumulada (m³)</h3><p>Tendencia de volumen en el período</p></div>
+    <canvas id="chartDiaProd"></canvas>
   </div>
+
+  <!-- Ranking barras horizontales estilo app -->
   <div class="card">
-    <h3>Tiempos promedio (min)</h3>
-    <p>Carguío vs viaje por camión</p>
-    <canvas id="chartTiempos"></canvas>
+    <div class="card-hdr"><h3>Ranking de materiales transportados</h3><p>% del volumen total por tipo</p></div>
+    <div class="prod-bar-wrap" id="rankMaterial"></div>
   </div>
+
 </div>
 
-<div class="table-section">
-  <div class="card" style="margin-bottom:16px">
-    <h3>Detalle de ciclos</h3>
-    <p>Últimos registros con filtros aplicados</p>
+<!-- ════════════════ TAB: EQUIPOS ════════════════ -->
+<div id="page-equipos" class="page">
+
+  <div class="charts-2">
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>Rendimiento por camión</h3><p>Ciclos totales por equipo (barras horizontales)</p></div>
+      <canvas id="chartCamionH"></canvas>
+    </div>
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>m³ por camión</h3><p>Volumen transportado por equipo</p></div>
+      <canvas id="chartCamionM3"></canvas>
+    </div>
+  </div>
+
+  <div class="charts-2">
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>Rendimiento excavadoras</h3><p>Ciclos totales asistidos por excavadora</p></div>
+      <canvas id="chartExcHoriz"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><h3>Tiempos promedio por camión (min)</h3><p>Carguío vs viaje</p></div>
+      <canvas id="chartTiempos"></canvas>
+    </div>
+  </div>
+
+  <!-- Ranking barras horizontales estilo app -->
+  <div class="card">
+    <div class="card-hdr"><h3>Ranking camiones — ciclos y m³</h3><p>Comparativo de rendimiento</p></div>
+    <div class="prod-bar-wrap" id="rankCamiones"></div>
+  </div>
+
+</div>
+
+<!-- ════════════════ TAB: PANNE ════════════════ -->
+<div id="page-panne" class="page">
+
+  <div class="kpi-row">
+    <div class="kpi kpi-red">
+      <div class="klabel">Total eventos</div>
+      <div class="kvalue" id="pKTotal">—</div>
+      <div class="ksub">PANNE registrados</div>
+    </div>
+    <div class="kpi kpi-orange">
+      <div class="klabel">Equipos afectados</div>
+      <div class="kvalue" id="pKEquipos">—</div>
+      <div class="ksub">Máquinas con PANNE</div>
+    </div>
+    <div class="kpi kpi-purple">
+      <div class="klabel">T. Total PANNE</div>
+      <div class="kvalue" id="pKTiempoTotal">—</div>
+      <div class="ksub">Tiempo acumulado</div>
+    </div>
+    <div class="kpi kpi-navy">
+      <div class="klabel">T. Prom. PANNE</div>
+      <div class="kvalue" id="pKTiempoProm">—</div>
+      <div class="ksub">Por evento</div>
+    </div>
+  </div>
+
+  <div class="charts-2">
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>PANNE por equipo</h3><p>Cantidad de eventos por máquina</p></div>
+      <canvas id="chartPanneEquipo"></canvas>
+    </div>
+    <div class="card chart-tall">
+      <div class="card-hdr"><h3>Tiempo de PANNE por equipo (min)</h3><p>Tiempo acumulado fuera de operación</p></div>
+      <canvas id="chartPanneTiempo"></canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Listado de eventos PANNE</div>
+  <div id="panneCards" class="panne-grid"></div>
+
+  <div class="card">
+    <div class="card-hdr"><h3>Tabla detalle PANNE</h3><p>Todos los registros de detención</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>Operador</th><th>Sector</th><th>Equipo</th><th>Tipo</th><th>Inicio</th><th>Fin</th><th>Duración</th></tr>
+        </thead>
+        <tbody id="tPanne"><tr><td colspan="8" class="empty">Sin datos</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════ TAB: DETALLE ════════════════ -->
+<div id="page-detalle" class="page">
+  <div class="card">
+    <div class="card-hdr"><h3>Detalle de ciclos</h3><p>Últimos 200 registros con filtros aplicados</p></div>
   </div>
   <div class="table-wrap">
     <table>
@@ -163,17 +372,13 @@
           <th>Vuelta</th><th>m³</th><th>Carguío</th><th>Viaje</th>
         </tr>
       </thead>
-      <tbody id="tBody"><tr><td colspan="10" class="empty">Cargando datos...</td></tr></tbody>
+      <tbody id="tBody"><tr><td colspan="10" class="empty">Cargando...</td></tr></tbody>
     </table>
   </div>
 </div>
 
+<!-- ════════ SCRIPT ════════ -->
 <script type="module">
-/* =========================================================
-   OBRAPP Dashboard — Lee directamente desde Firebase Firestore
-   Versión 7 — Sin variables duplicadas, con filtro empresa
-   ========================================================= */
-
 import { Chart, CategoryScale, LinearScale, BarElement, LineElement,
          PointElement, ArcElement, Tooltip, Legend, Filler,
          LineController, BarController, DoughnutController }
@@ -183,13 +388,13 @@ Chart.register(CategoryScale, LinearScale, BarElement, LineElement,
   PointElement, ArcElement, Tooltip, Legend, Filler,
   LineController, BarController, DoughnutController);
 
-import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, collection, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-/* ============ CONFIGURACIÓN FIREBASE ============ */
 const firebaseConfig = {
   apiKey:            "AIzaSyBo10aLImyYWqtuy__YwgXZqhEkEvLL3cY",
   authDomain:        "obrapp-produccion.firebaseapp.com",
@@ -205,92 +410,106 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
 
-/* ============ ESTADO ============ */
+/* ── PALETA ── */
+const PALETTE = ['#1a2340','#27ae60','#3498db','#e67e22','#8e44ad','#e74c3c','#16a085','#d35400','#2980b9','#27ae60'];
+const GREEN   = '#27ae60';
+const NAVY    = '#1a2340';
+
+/* ── ESTADO ── */
 let rawCiclos = [];
 let rawPanne  = [];
 let autoTimer = null;
 let charts    = {};
+let currentTab = 'resumen';
 
-/* ============ UTILS ============ */
+/* ── UTILS ── */
 function secondsToMMSS(sec) {
-  if (sec == null || isNaN(sec)) return '—';
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2,'0')}`;
+  if (sec == null || isNaN(sec) || sec < 0) return '—';
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2,'0');
 }
-
-function setStatus(ok, text) {
-  const dot  = document.getElementById('statusDot');
-  const span = document.getElementById('statusText');
-  dot.style.background = ok ? '#27ae60' : '#e74c3c';
-  span.textContent = text;
+function secondsToMin(sec) {
+  if (sec == null || isNaN(sec)) return 0;
+  return Math.round(sec / 60 * 10) / 10;
 }
-
+function setStatus(ok, txt) {
+  document.getElementById('statusDot').style.background = ok ? '#27ae60' : '#e74c3c';
+  document.getElementById('statusText').textContent = txt;
+}
 function showBar(msg) {
-  const b = document.getElementById('statusBar');
-  b.textContent = msg;
-  b.style.display = msg ? 'block' : 'none';
+  var b = document.getElementById('statusBar');
+  b.textContent = msg; b.style.display = msg ? 'block' : 'none';
+}
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+function avg(arr) {
+  return arr.length ? arr.reduce(function(s,v){return s+v;},0)/arr.length : 0;
 }
 
-/* ============ AUTH ============ */
+/* ── TABS ── */
+window.showTab = function(name) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  var pg = document.getElementById('page-'+name);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t){
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'"+name+"'")) t.classList.add('active');
+  });
+  currentTab = name;
+  renderAll();
+};
+
+/* ── AUTH ── */
 async function ensureAuth() {
   if (auth.currentUser) return true;
   try {
     await signInWithEmailAndPassword(auth, TECH_EMAIL, TECH_PASSWORD);
     return true;
   } catch(e) {
-    console.error('Auth error:', e);
-    setStatus(false, 'Error de autenticación');
+    setStatus(false,'Error de autenticación');
     return false;
   }
 }
 
-/* ============ CARGA DE EMPRESAS ============ */
+/* ── CARGA EMPRESAS ── */
 async function cargarEmpresas() {
+  var ok = await ensureAuth();
+  if (!ok) return;
   try {
-    const ok = await ensureAuth();
-    if (!ok) return;
-    const snap = await getDocs(collection(db, 'organizaciones'));
-    const sel  = document.getElementById('fEmpresa');
+    var snap = await getDocs(collection(db,'organizaciones'));
+    var sel  = document.getElementById('fEmpresa');
     while (sel.options.length > 1) sel.remove(1);
-    snap.forEach(function(orgDoc) {
-      const opt = document.createElement('option');
-      opt.value = orgDoc.id;
-      opt.textContent = (orgDoc.data().nombre || orgDoc.id);
-      sel.appendChild(opt);
+    snap.forEach(function(d){
+      var o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.data().nombre || d.id;
+      sel.appendChild(o);
     });
-    console.log('✅ Empresas cargadas:', snap.size);
-  } catch(e) {
-    console.error('Error cargando empresas:', e);
-  }
+  } catch(e){ console.warn('cargarEmpresas:', e.message); }
 }
 
-/* ============ PROCESAMIENTO DE UNA FAENA ============
-   Todas las variables locales están dentro de esta función
-   para evitar cualquier conflicto de re-declaración.
-   ===================================================== */
+/* ── PROCESAMIENTO ── */
 function procesarFaena(data) {
-  var fFecha    = data.fecha || '';
-  var fOperador = data.usuarioOperador ? (data.usuarioOperador.nombre || '') :
-                  (data.usuario        ? (data.usuario.nombre || '')        : '');
-  var fRut      = data.usuarioOperador ? (data.usuarioOperador.rut || '')   :
-                  (data.usuario        ? (data.usuario.rut || '')           : '');
-  var fSector   = data.usuarioOperador ? (data.usuarioOperador.sector || '') :
-                  (data.usuario        ? (data.usuario.sector || '')         : '');
-  var fDevice   = data.deviceId || '';
+  var fFecha  = data.fecha || '';
+  var fOp     = (data.usuarioOperador && data.usuarioOperador.nombre) ||
+                (data.usuario && data.usuario.nombre) || '';
+  var fRut    = (data.usuarioOperador && data.usuarioOperador.rut) ||
+                (data.usuario && data.usuario.rut) || '';
+  var fSector = (data.usuarioOperador && data.usuarioOperador.sector) ||
+                (data.usuario && data.usuario.sector) || '';
+  var fDevice = data.deviceId || '';
 
   var ciclosList = data.ciclosCompletados || data.ciclos || [];
-  ciclosList.forEach(function(c) {
-    var carguioSeg = typeof c.tiempoCarga_seg  === 'number' ? c.tiempoCarga_seg  :
-                     typeof c.tiempoCarguio_seg === 'number' ? c.tiempoCarguio_seg : null;
-    var viajeSeg   = typeof c.tiempoViaje_seg  === 'number' ? c.tiempoViaje_seg  : null;
-    var m3val      = Number(c.camionCapacidadM3 || c.m3 || 0);
-    var hora       = c.timestampInicio
-                       ? new Date(c.timestampInicio).toLocaleTimeString('es-CL')
-                       : (c.fechaHora || c.hora || '');
+  ciclosList.forEach(function(c){
+    var cargSec = typeof c.tiempoCarga_seg  === 'number' ? c.tiempoCarga_seg  :
+                  typeof c.tiempoCarguio_seg === 'number' ? c.tiempoCarguio_seg : null;
+    var viajSec = typeof c.tiempoViaje_seg  === 'number' ? c.tiempoViaje_seg  : null;
+    var m3v     = Number(c.camionCapacidadM3 || c.m3 || 0);
     rawCiclos.push({
       fecha:      fFecha,
-      operador:   fOperador,
+      operador:   fOp,
       rut:        fRut,
       sector:     fSector,
       deviceId:   fDevice,
@@ -298,110 +517,113 @@ function procesarFaena(data) {
       excavadora: c.excavadoraNombre || c.excavadora || '',
       camion:     c.camionNombre    || c.camion     || '',
       material:   c.material        || c.tipoMaterial || '',
-      m3:         m3val,
-      hora:       hora,
-      carguioSec: carguioSeg,
-      viajeSec:   viajeSeg,
-      carguioStr: secondsToMMSS(carguioSeg),
-      viajeStr:   secondsToMMSS(viajeSeg)
+      m3:         m3v,
+      hora:       c.timestampInicio
+                    ? new Date(c.timestampInicio).toLocaleTimeString('es-CL')
+                    : (c.fechaHora || c.hora || ''),
+      carguioSec: cargSec,
+      viajeSec:   viajSec,
+      carguioStr: secondsToMMSS(cargSec),
+      viajeStr:   secondsToMMSS(viajSec)
     });
   });
 
   var panneList = data.panneHistorial || data.panne || [];
-  panneList.forEach(function(p) {
-    var durSeg = typeof p.duracion_seg === 'number' ? p.duracion_seg :
-                 typeof p.duracion     === 'number' ? p.duracion     : null;
+  panneList.forEach(function(p){
+    var tsI = p.timestampInicio || null;
+    var tsF = p.timestampFin    || null;
+    var dur = typeof p.duracion_seg === 'number' ? p.duracion_seg :
+              typeof p.duracion     === 'number' ? p.duracion     : null;
     rawPanne.push({
       fecha:    fFecha,
-      operador: fOperador,
+      operador: fOp,
       sector:   fSector,
       equipo:   p.equipoNombre || p.equipo  || p.nombre || '',
-      tipo:     p.tipoEquipo   || p.tipo     || '',
-      duracion: secondsToMMSS(durSeg)
+      tipo:     p.tipoEquipo   || p.tipo     || 'Desconocido',
+      inicio:   tsI ? (typeof tsI==='number'
+                  ? new Date(tsI).toLocaleTimeString('es-CL') : tsI) : '—',
+      fin:      tsF ? (typeof tsF==='number'
+                  ? new Date(tsF).toLocaleTimeString('es-CL') : tsF) : '—',
+      durSec:   dur,
+      durStr:   secondsToMMSS(dur)
     });
   });
 }
 
-/* ============ FETCH DATA ============ */
+/* ── FETCH ── */
 window.fetchData = async function() {
   showBar('Conectando a Firebase...');
-  setStatus(false, 'Conectando...');
+  setStatus(false,'Conectando...');
+  var ok = await ensureAuth();
+  if (!ok){ showBar('Error de autenticación'); return; }
 
-  const ok = await ensureAuth();
-  if (!ok) { showBar('Error de autenticación'); return; }
-
-  rawCiclos = [];
-  rawPanne  = [];
-
-  var empresaFiltro = document.getElementById('fEmpresa').value || '';
+  rawCiclos = []; rawPanne = [];
+  var empFiltro = document.getElementById('fEmpresa').value || '';
 
   try {
-    // 1. Sistema anterior — colección raíz /faenas
-    if (!empresaFiltro) {
+    if (!empFiltro) {
       try {
-        var snapRaiz = await getDocs(collection(db, 'faenas'));
-        snapRaiz.forEach(function(d) { procesarFaena(d.data()); });
-        console.log('✅ Faenas raíz:', snapRaiz.size);
-      } catch(e) {
-        console.warn('Sin colección raíz /faenas:', e.message);
-      }
+        var r = await getDocs(collection(db,'faenas'));
+        r.forEach(function(d){ procesarFaena(d.data()); });
+      } catch(e){ console.warn('/faenas raíz:', e.message); }
     }
 
-    // 2. Sistema multi-empresa — /organizaciones/{orgId}/faenas
-    if (empresaFiltro) {
-      // Solo la empresa seleccionada
-      var snapEmp = await getDocs(
-        collection(db, 'organizaciones', empresaFiltro, 'faenas')
-      );
-      snapEmp.forEach(function(d) { procesarFaena(d.data()); });
-      console.log('✅ Faenas empresa', empresaFiltro, ':', snapEmp.size);
+    if (empFiltro) {
+      var s = await getDocs(collection(db,'organizaciones',empFiltro,'faenas'));
+      s.forEach(function(d){ procesarFaena(d.data()); });
     } else {
-      // Todas las organizaciones
       try {
-        var snapOrgs = await getDocs(collection(db, 'organizaciones'));
-        for (var i = 0; i < snapOrgs.docs.length; i++) {
-          var orgDoc = snapOrgs.docs[i];
-          var snapFaenas = await getDocs(
-            collection(db, 'organizaciones', orgDoc.id, 'faenas')
-          );
-          snapFaenas.forEach(function(d) { procesarFaena(d.data()); });
-          console.log('✅ Org', orgDoc.id, ':', snapFaenas.size, 'faenas');
+        var orgs = await getDocs(collection(db,'organizaciones'));
+        for (var i=0;i<orgs.docs.length;i++){
+          var od = orgs.docs[i];
+          var fs = await getDocs(collection(db,'organizaciones',od.id,'faenas'));
+          fs.forEach(function(d){ procesarFaena(d.data()); });
         }
-      } catch(e) {
-        console.error('Error leyendo organizaciones:', e);
-      }
+      } catch(e){ console.error('orgs:',e); }
     }
 
-    console.log('📦 Total ciclos cargados:', rawCiclos.length);
     showBar('');
-    setStatus(true, 'Actualizado ' + new Date().toLocaleTimeString('es-CL'));
+    setStatus(true,'Actualizado '+new Date().toLocaleTimeString('es-CL'));
     populateFilters();
     renderAll();
-
-  } catch(e) {
-    console.error('fetchData error:', e);
-    showBar('Error: ' + e.message);
-    setStatus(false, 'Error al cargar');
+  } catch(e){
+    showBar('Error: '+e.message);
+    setStatus(false,'Error');
+    console.error(e);
   }
 };
 
-/* ============ FILTROS ============ */
+/* ── FILTROS ── */
 function getFiltered() {
   var op   = document.getElementById('fOperador').value;
   var sec  = document.getElementById('fSector').value;
   var exc  = document.getElementById('fExcavadora').value;
   var cam  = document.getElementById('fCamion').value;
   var mat  = document.getElementById('fMaterial').value;
-  var desde= document.getElementById('fDesde').value;
-  var hasta= document.getElementById('fHasta').value;
-  return rawCiclos.filter(function(c) {
-    if (op   && c.operador   !== op)  return false;
-    if (sec  && c.sector     !== sec) return false;
-    if (exc  && c.excavadora !== exc) return false;
-    if (cam  && c.camion     !== cam) return false;
-    if (mat  && c.material   !== mat) return false;
-    if (desde && c.fecha < desde)     return false;
-    if (hasta && c.fecha > hasta)     return false;
+  var des  = document.getElementById('fDesde').value;
+  var has  = document.getElementById('fHasta').value;
+  return rawCiclos.filter(function(c){
+    if (op  && c.operador   !== op)  return false;
+    if (sec && c.sector     !== sec) return false;
+    if (exc && c.excavadora !== exc) return false;
+    if (cam && c.camion     !== cam) return false;
+    if (mat && c.material   !== mat) return false;
+    if (des && c.fecha < des)        return false;
+    if (has && c.fecha > has)        return false;
+    return true;
+  });
+}
+
+function getFilteredPanne() {
+  var op  = document.getElementById('fOperador').value;
+  var sec = document.getElementById('fSector').value;
+  var des = document.getElementById('fDesde').value;
+  var has = document.getElementById('fHasta').value;
+  return rawPanne.filter(function(p){
+    if (op  && p.operador !== op)  return false;
+    if (sec && p.sector   !== sec) return false;
+    if (des && p.fecha < des)      return false;
+    if (has && p.fecha > has)      return false;
     return true;
   });
 }
@@ -410,168 +632,346 @@ function populateFilters() {
   function fill(id, key) {
     var sel = document.getElementById(id);
     var cur = sel.value;
-    var vals = [...new Set(rawCiclos.map(function(c){ return c[key]; }).filter(Boolean))].sort();
+    var vals = [...new Set(rawCiclos.map(function(c){return c[key];}).filter(Boolean))].sort();
     while (sel.options.length > 1) sel.remove(1);
-    vals.forEach(function(v) {
+    vals.forEach(function(v){
       var o = document.createElement('option');
-      o.value = v; o.textContent = v;
-      sel.appendChild(o);
+      o.value=v; o.textContent=v; sel.appendChild(o);
     });
     if (vals.includes(cur)) sel.value = cur;
   }
-  fill('fOperador',  'operador');
-  fill('fSector',    'sector');
-  fill('fExcavadora','excavadora');
-  fill('fCamion',    'camion');
-  fill('fMaterial',  'material');
+  fill('fOperador','operador'); fill('fSector','sector');
+  fill('fExcavadora','excavadora'); fill('fCamion','camion');
+  fill('fMaterial','material');
 }
 
 window.clearFilters = function() {
   ['fEmpresa','fOperador','fSector','fExcavadora','fCamion','fMaterial'].forEach(function(id){
-    document.getElementById(id).value = '';
+    document.getElementById(id).value='';
   });
-  document.getElementById('fDesde').value = '';
-  document.getElementById('fHasta').value = '';
+  document.getElementById('fDesde').value='';
+  document.getElementById('fHasta').value='';
   renderAll();
 };
 
-/* ============ RENDER ============ */
-function renderAll() {
-  var data = getFiltered();
-  renderKPIs(data);
-  renderCharts(data);
-  renderTable(data);
-}
-
-function renderKPIs(data) {
-  var m3Total = data.reduce(function(s,c){ return s + (c.m3||0); }, 0);
-  var camSet  = new Set(data.map(function(c){ return c.camion; }).filter(Boolean));
-  var excSet  = new Set(data.map(function(c){ return c.excavadora; }).filter(Boolean));
-  var opSet   = new Set(data.map(function(c){ return c.operador; }).filter(Boolean));
-  var tiempos = data.filter(function(c){ return c.carguioSec!=null && c.viajeSec!=null; });
-  var promSec = tiempos.length
-    ? tiempos.reduce(function(s,c){ return s+(c.carguioSec+c.viajeSec); },0) / tiempos.length
-    : null;
-
-  document.getElementById('kCiclos').textContent     = data.length;
-  document.getElementById('kM3').textContent         = m3Total.toFixed(1) + ' m³';
-  document.getElementById('kCamiones').textContent   = camSet.size;
-  document.getElementById('kExcavadoras').textContent= excSet.size;
-  document.getElementById('kOperadores').textContent = opSet.size;
-  document.getElementById('kTiempo').textContent     = secondsToMMSS(promSec ? Math.round(promSec) : null);
-}
-
-function mkChart(id, type, labels, datasets, opts) {
-  if (charts[id]) { charts[id].destroy(); }
+/* ── CHART HELPER ── */
+function mkChart(id, type, labels, datasets, extra) {
+  if (charts[id]) charts[id].destroy();
   var ctx = document.getElementById(id);
   if (!ctx) return;
   charts[id] = new Chart(ctx, {
     type: type,
     data: { labels: labels, datasets: datasets },
-    options: Object.assign({ responsive:true, plugins:{ legend:{ position:'bottom' } } }, opts||{})
+    options: Object.assign({
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position:'bottom', labels:{ boxWidth:12, font:{size:11} } } }
+    }, extra || {})
   });
 }
 
-function renderCharts(data) {
-  // Chart 1: m³ por día
+/* ── HORIZONTAL BAR HELPER (estilo app) ── */
+function renderHorizBars(containerId, items, maxVal, color) {
+  var wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!items.length){ wrap.innerHTML='<p style="color:#bbb;font-size:.82rem;text-align:center;padding:20px">Sin datos</p>'; return; }
+  items.forEach(function(it){
+    var pct = maxVal > 0 ? (it.val / maxVal * 100) : 0;
+    wrap.innerHTML += '<div class="prod-bar-item">' +
+      '<div class="prod-bar-label"><span>'+it.label+'</span><span>'+it.valStr+'</span></div>' +
+      '<div class="prod-bar-track"><div class="prod-bar-fill" style="width:'+pct.toFixed(1)+'%;background:'+color+'"></div></div>' +
+    '</div>';
+  });
+}
+
+/* ── RENDER ALL ── */
+function renderAll() {
+  var data  = getFiltered();
+  var panne = getFilteredPanne();
+  if      (currentTab==='resumen')    renderResumen(data, panne);
+  else if (currentTab==='produccion') renderProduccion(data);
+  else if (currentTab==='equipos')    renderEquipos(data);
+  else if (currentTab==='panne')      renderPanne(panne);
+  else if (currentTab==='detalle')    renderDetalle(data);
+}
+
+/* ═══ RESUMEN ═══ */
+function renderResumen(data, panne) {
+  var m3Total = data.reduce(function(s,c){return s+(c.m3||0);},0);
+  var camSet  = new Set(data.map(function(c){return c.camion;}).filter(Boolean));
+  var excSet  = new Set(data.map(function(c){return c.excavadora;}).filter(Boolean));
+  var opSet   = new Set(data.map(function(c){return c.operador;}).filter(Boolean));
+  var tList   = data.filter(function(c){return c.carguioSec!=null&&c.viajeSec!=null;});
+  var promSec = tList.length ? tList.reduce(function(s,c){return s+c.carguioSec+c.viajeSec;},0)/tList.length : null;
+
+  document.getElementById('kCiclos').textContent      = data.length;
+  document.getElementById('kM3').textContent           = m3Total.toFixed(1)+' m³';
+  document.getElementById('kCamiones').textContent     = camSet.size;
+  document.getElementById('kExcavadoras').textContent  = excSet.size;
+  document.getElementById('kOperadores').textContent   = opSet.size;
+  document.getElementById('kTiempo').textContent       = secondsToMMSS(promSec?Math.round(promSec):null);
+  document.getElementById('kPanne').textContent        = panne.length;
+
+  // Chart: producción diaria
   var byDay = {};
-  data.forEach(function(c) {
-    if (!c.fecha) return;
-    byDay[c.fecha] = (byDay[c.fecha]||0) + (c.m3||0);
-  });
+  data.forEach(function(c){ if(!c.fecha)return; byDay[c.fecha]=(byDay[c.fecha]||0)+(c.m3||0); });
   var days = Object.keys(byDay).sort();
-  mkChart('chartDia','bar', days,
-    [{ label:'m³', data: days.map(function(d){ return byDay[d].toFixed(1); }),
-       backgroundColor:'rgba(39,174,96,.7)', borderColor:'#27ae60', borderWidth:1 }]);
+  mkChart('chartDia','bar',days,[{
+    label:'m³', data:days.map(function(d){return byDay[d].toFixed(1);}),
+    backgroundColor:'rgba(39,174,96,.75)', borderColor:GREEN, borderWidth:1, borderRadius:4
+  }],{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
 
-  // Chart 2: m³ por material (doughnut)
+  // Chart: doughnut material
   var byMat = {};
-  data.forEach(function(c) {
-    if (!c.material) return;
-    byMat[c.material] = (byMat[c.material]||0) + (c.m3||0);
-  });
+  data.forEach(function(c){ if(!c.material)return; byMat[c.material]=(byMat[c.material]||0)+(c.m3||0); });
   var mats = Object.keys(byMat);
-  var palette = ['#1a2340','#27ae60','#3498db','#e67e22','#8e44ad','#e74c3c','#16a085','#d35400'];
-  mkChart('chartMaterial','doughnut', mats,
-    [{ data: mats.map(function(m){ return byMat[m].toFixed(1); }),
-       backgroundColor: mats.map(function(_,i){ return palette[i%palette.length]; }) }]);
-
-  // Chart 3: ciclos por camión
-  var byCam = {};
-  data.forEach(function(c) {
-    if (!c.camion) return;
-    byCam[c.camion] = (byCam[c.camion]||0) + 1;
-  });
-  var cams = Object.keys(byCam).sort();
-  mkChart('chartCamion','bar', cams,
-    [{ label:'Ciclos', data: cams.map(function(c){ return byCam[c]; }),
-       backgroundColor:'rgba(52,152,219,.7)', borderColor:'#3498db', borderWidth:1 }]);
-
-  // Chart 4: tiempos promedio por camión
-  var tByCam = {};
-  data.forEach(function(c) {
-    if (!c.camion) return;
-    if (!tByCam[c.camion]) tByCam[c.camion] = { carga:[], viaje:[] };
-    if (c.carguioSec != null) tByCam[c.camion].carga.push(c.carguioSec);
-    if (c.viajeSec   != null) tByCam[c.camion].viaje.push(c.viajeSec);
-  });
-  var tCams = Object.keys(tByCam).sort();
-  function avg(arr) { return arr.length ? arr.reduce(function(s,v){ return s+v; },0)/arr.length/60 : 0; }
-  mkChart('chartTiempos','bar', tCams,
-    [
-      { label:'Carguío (min)', data: tCams.map(function(c){ return avg(tByCam[c].carga).toFixed(2); }),
-        backgroundColor:'rgba(142,68,173,.7)', borderColor:'#8e44ad', borderWidth:1 },
-      { label:'Viaje (min)',   data: tCams.map(function(c){ return avg(tByCam[c].viaje).toFixed(2); }),
-        backgroundColor:'rgba(231,76,60,.7)',  borderColor:'#e74c3c', borderWidth:1 }
-    ],
-    { scales:{ x:{ stacked:false }, y:{ stacked:false } } });
+  mkChart('chartMaterial','doughnut',mats,[{
+    data:mats.map(function(m){return byMat[m].toFixed(1);}),
+    backgroundColor:mats.map(function(_,i){return PALETTE[i%PALETTE.length];}),
+    borderWidth:2, borderColor:'#fff'
+  }]);
 }
 
-function renderTable(data) {
+/* ═══ PRODUCCIÓN ═══ */
+function renderProduccion(data) {
+  var today   = todayStr();
+  var hoy     = data.filter(function(c){return c.fecha===today;});
+  var m3Hoy   = hoy.reduce(function(s,c){return s+(c.m3||0);},0);
+  var promM3  = data.length ? data.reduce(function(s,c){return s+(c.m3||0);},0)/data.length : 0;
+  var secSet  = new Set(data.map(function(c){return c.sector;}).filter(Boolean));
+
+  document.getElementById('kM3Hoy').textContent    = m3Hoy.toFixed(1)+' m³';
+  document.getElementById('kCiclosHoy').textContent = hoy.length;
+  document.getElementById('kPromM3').textContent    = promM3.toFixed(1)+' m³';
+  document.getElementById('kSectores').textContent  = secSet.size;
+
+  // m³ por material — horizontal
+  var byMat = {};
+  data.forEach(function(c){ if(!c.material)return; byMat[c.material]=(byMat[c.material]||0)+(c.m3||0); });
+  var matKeys = Object.keys(byMat).sort(function(a,b){return byMat[b]-byMat[a];});
+  var maxMat  = matKeys.length ? byMat[matKeys[0]] : 0;
+  mkChart('chartMatHoriz','bar',matKeys,[{
+    label:'m³',data:matKeys.map(function(m){return byMat[m].toFixed(1);}),
+    backgroundColor:matKeys.map(function(_,i){return PALETTE[i%PALETTE.length];}),
+    borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Ciclos por sector — horizontal
+  var bySec = {};
+  data.forEach(function(c){ if(!c.sector)return; bySec[c.sector]=(bySec[c.sector]||0)+1; });
+  var secKeys = Object.keys(bySec).sort(function(a,b){return bySec[b]-bySec[a];});
+  mkChart('chartSector','bar',secKeys,[{
+    label:'Ciclos',data:secKeys.map(function(s){return bySec[s];}),
+    backgroundColor:'rgba(52,152,219,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Producción diaria acumulada
+  var byDay2 = {};
+  data.forEach(function(c){ if(!c.fecha)return; byDay2[c.fecha]=(byDay2[c.fecha]||0)+(c.m3||0); });
+  var days2 = Object.keys(byDay2).sort();
+  mkChart('chartDiaProd','line',days2,[{
+    label:'m³ por día',data:days2.map(function(d){return byDay2[d].toFixed(1);}),
+    borderColor:GREEN, backgroundColor:'rgba(39,174,96,.12)',
+    fill:true, tension:0.35, pointRadius:4, pointBackgroundColor:GREEN
+  }],{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
+
+  // Ranking horizontal estilo app
+  var rankItems = matKeys.map(function(m){
+    return {label:m, val:byMat[m], valStr:byMat[m].toFixed(1)+' m³'};
+  });
+  renderHorizBars('rankMaterial', rankItems, maxMat, GREEN);
+}
+
+/* ═══ EQUIPOS ═══ */
+function renderEquipos(data) {
+  // Ciclos por camión — horizontal
+  var byCam = {};
+  data.forEach(function(c){ if(!c.camion)return; byCam[c.camion]=(byCam[c.camion]||0)+1; });
+  var cams = Object.keys(byCam).sort(function(a,b){return byCam[b]-byCam[a];});
+  mkChart('chartCamionH','bar',cams,[{
+    label:'Ciclos',data:cams.map(function(c){return byCam[c];}),
+    backgroundColor:'rgba(26,35,64,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // m³ por camión — horizontal
+  var camM3 = {};
+  data.forEach(function(c){ if(!c.camion)return; camM3[c.camion]=(camM3[c.camion]||0)+(c.m3||0); });
+  var cams2 = Object.keys(camM3).sort(function(a,b){return camM3[b]-camM3[a];});
+  mkChart('chartCamionM3','bar',cams2,[{
+    label:'m³',data:cams2.map(function(c){return camM3[c].toFixed(1);}),
+    backgroundColor:'rgba(39,174,96,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Excavadoras — horizontal
+  var byExc = {};
+  data.forEach(function(c){ if(!c.excavadora)return; byExc[c.excavadora]=(byExc[c.excavadora]||0)+1; });
+  var excs = Object.keys(byExc).sort(function(a,b){return byExc[b]-byExc[a];});
+  mkChart('chartExcHoriz','bar',excs,[{
+    label:'Ciclos asistidos',data:excs.map(function(e){return byExc[e];}),
+    backgroundColor:'rgba(142,68,173,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Tiempos promedio carguío vs viaje
+  var tByCam = {};
+  data.forEach(function(c){
+    if(!c.camion)return;
+    if(!tByCam[c.camion]) tByCam[c.camion]={carga:[],viaje:[]};
+    if(c.carguioSec!=null) tByCam[c.camion].carga.push(c.carguioSec);
+    if(c.viajeSec!=null)   tByCam[c.camion].viaje.push(c.viajeSec);
+  });
+  var tcams = Object.keys(tByCam);
+  mkChart('chartTiempos','bar',tcams,[
+    {label:'Carguío (min)',data:tcams.map(function(c){return secondsToMin(avg(tByCam[c].carga));}),
+     backgroundColor:'rgba(142,68,173,.75)',borderRadius:4},
+    {label:'Viaje (min)',  data:tcams.map(function(c){return secondsToMin(avg(tByCam[c].viaje));}),
+     backgroundColor:'rgba(231,76,60,.75)',borderRadius:4}
+  ],{scales:{x:{stacked:false},y:{stacked:false,beginAtZero:true}}});
+
+  // Ranking camiones horizontal estilo app
+  var maxCiclos = cams.length ? byCam[cams[0]] : 0;
+  var rankItems = cams.map(function(cam){
+    return {
+      label: cam,
+      val:   byCam[cam],
+      valStr:byCam[cam]+' ciclos | '+(camM3[cam]||0).toFixed(1)+' m³'
+    };
+  });
+  renderHorizBars('rankCamiones', rankItems, maxCiclos, NAVY);
+}
+
+/* ═══ PANNE ═══ */
+function renderPanne(panne) {
+  var totalDurSec = panne.reduce(function(s,p){return s+(p.durSec||0);},0);
+  var eqSet = new Set(panne.map(function(p){return p.equipo;}).filter(Boolean));
+  var prom  = panne.length ? totalDurSec/panne.length : null;
+
+  document.getElementById('pKTotal').textContent       = panne.length;
+  document.getElementById('pKEquipos').textContent     = eqSet.size;
+  document.getElementById('pKTiempoTotal').textContent = secondsToMMSS(Math.round(totalDurSec));
+  document.getElementById('pKTiempoProm').textContent  = secondsToMMSS(prom?Math.round(prom):null);
+
+  // Eventos por equipo — horizontal
+  var byEq = {};
+  panne.forEach(function(p){ if(!p.equipo)return; byEq[p.equipo]=(byEq[p.equipo]||0)+1; });
+  var eqs = Object.keys(byEq).sort(function(a,b){return byEq[b]-byEq[a];});
+  mkChart('chartPanneEquipo','bar',eqs,[{
+    label:'Eventos',data:eqs.map(function(e){return byEq[e];}),
+    backgroundColor:'rgba(231,76,60,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Tiempo por equipo — horizontal
+  var tEq = {};
+  panne.forEach(function(p){ if(!p.equipo||p.durSec==null)return; tEq[p.equipo]=(tEq[p.equipo]||0)+p.durSec; });
+  var teqs = Object.keys(tEq).sort(function(a,b){return tEq[b]-tEq[a];});
+  mkChart('chartPanneTiempo','bar',teqs,[{
+    label:'Minutos detenido',data:teqs.map(function(e){return secondsToMin(tEq[e]);}),
+    backgroundColor:'rgba(230,126,34,.8)', borderRadius:4
+  }],{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{x:{beginAtZero:true}}
+  });
+
+  // Cards PANNE
+  var grid = document.getElementById('panneCards');
+  if (!panne.length) {
+    grid.innerHTML = '<div class="panne-empty">✅ Sin eventos PANNE registrados para los filtros seleccionados</div>';
+  } else {
+    grid.innerHTML = panne.slice(0,40).map(function(p){
+      return '<div class="panne-card">' +
+        '<div class="pc-equipo">'+(p.equipo||'Equipo desconocido')+'</div>' +
+        '<div class="pc-tipo"><span class="badge badge-warn">'+(p.tipo||'—')+'</span></div>' +
+        '<div class="pc-row"><span>📅 Fecha</span><span>'+(p.fecha||'—')+'</span></div>' +
+        '<div class="pc-row"><span>👤 Operador</span><span>'+(p.operador||'—')+'</span></div>' +
+        '<div class="pc-row"><span>📍 Sector</span><span>'+(p.sector||'—')+'</span></div>' +
+        '<div class="pc-row"><span>🕐 Inicio</span><span>'+(p.inicio||'—')+'</span></div>' +
+        '<div class="pc-row"><span>🕑 Fin</span><span>'+(p.fin||'—')+'</span></div>' +
+        '<div class="pc-row"><span>⏱ Duración</span><span style="color:#e74c3c;font-weight:700">'+(p.durStr||'—')+'</span></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // Tabla PANNE
+  var tbody = document.getElementById('tPanne');
+  if (!panne.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin eventos PANNE</td></tr>';
+  } else {
+    tbody.innerHTML = panne.map(function(p){
+      return '<tr>' +
+        '<td>'+(p.fecha||'—')+'</td><td>'+(p.operador||'—')+'</td><td>'+(p.sector||'—')+'</td>' +
+        '<td>'+(p.equipo||'—')+'</td><td>'+(p.tipo||'—')+'</td>' +
+        '<td>'+(p.inicio||'—')+'</td><td>'+(p.fin||'—')+'</td>' +
+        '<td style="font-weight:700;color:#e74c3c">'+(p.durStr||'—')+'</td>' +
+      '</tr>';
+    }).join('');
+  }
+}
+
+/* ═══ DETALLE ═══ */
+function renderDetalle(data) {
   var tbody = document.getElementById('tBody');
   if (!data.length) {
     tbody.innerHTML = '<tr><td colspan="10" class="empty">Sin datos para los filtros seleccionados</td></tr>';
     return;
   }
-  var slice = data.slice().reverse().slice(0,200);
-  tbody.innerHTML = slice.map(function(c) {
+  tbody.innerHTML = data.slice().reverse().slice(0,200).map(function(c){
     return '<tr>' +
-      '<td>' + (c.fecha||'—')      + '</td>' +
-      '<td>' + (c.operador||'—')   + '</td>' +
-      '<td>' + (c.sector||'—')     + '</td>' +
-      '<td>' + (c.excavadora||'—') + '</td>' +
-      '<td>' + (c.camion||'—')     + '</td>' +
-      '<td>' + (c.material||'—')   + '</td>' +
-      '<td>' + (c.vuelta||'—')     + '</td>' +
-      '<td>' + (c.m3||0).toFixed(1)+ '</td>' +
-      '<td>' + c.carguioStr        + '</td>' +
-      '<td>' + c.viajeStr          + '</td>' +
+      '<td>'+(c.fecha||'—')+'</td><td>'+(c.operador||'—')+'</td><td>'+(c.sector||'—')+'</td>' +
+      '<td>'+(c.excavadora||'—')+'</td><td>'+(c.camion||'—')+'</td><td>'+(c.material||'—')+'</td>' +
+      '<td>'+(c.vuelta||'—')+'</td><td>'+(c.m3||0).toFixed(1)+'</td>' +
+      '<td>'+c.carguioStr+'</td><td>'+c.viajeStr+'</td>' +
     '</tr>';
   }).join('');
 }
 
-/* ============ AUTO REFRESH ============ */
+/* ── AUTO REFRESH ── */
 window.setupAutoRefresh = function() {
   if (autoTimer) clearInterval(autoTimer);
   var secs = parseInt(document.getElementById('autoSelect').value);
-  if (secs > 0) autoTimer = setInterval(window.fetchData, secs * 1000);
+  if (secs > 0) autoTimer = setInterval(window.fetchData, secs*1000);
 };
 
-/* ============ INIT ============ */
+/* ── INIT ── */
 function setupEvents() {
   ['fEmpresa','fOperador','fSector','fExcavadora','fCamion','fMaterial','fDesde','fHasta']
-    .forEach(function(id) {
+    .forEach(function(id){
       var el = document.getElementById(id);
-      if (el) el.addEventListener('change', function() {
-        if (id === 'fEmpresa') { window.fetchData(); }
-        else { renderAll(); }
+      if (!el) return;
+      el.addEventListener('change', function(){
+        if (id==='fEmpresa') window.fetchData();
+        else renderAll();
       });
     });
 }
 
 setupEvents();
 setupAutoRefresh();
-cargarEmpresas().then(function() { window.fetchData(); });
+cargarEmpresas().then(function(){ window.fetchData(); });
 
 </script>
 </body>
