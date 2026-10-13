@@ -494,8 +494,10 @@ async function cargarEmpresas() {
 }
 
 /* ── PROCESAMIENTO ── */
-function procesarFaena(data) {
+// orgId identifica de qué empresa/colección vienen los datos
+function procesarFaena(data, orgId) {
   var fFecha  = data.fecha || '';
+  var fOrgId  = orgId || '__raiz__';
   var fOp     = (data.usuarioOperador && data.usuarioOperador.nombre) ||
                 (data.usuario && data.usuario.nombre) || '';
   var fRut    = (data.usuarioOperador && data.usuarioOperador.rut) ||
@@ -511,6 +513,7 @@ function procesarFaena(data) {
     var viajSec = typeof c.tiempoViaje_seg  === 'number' ? c.tiempoViaje_seg  : null;
     var m3v     = Number(c.camionCapacidadM3 || c.m3 || 0);
     rawCiclos.push({
+      orgId:      fOrgId,
       fecha:      fFecha,
       operador:   fOp,
       rut:        fRut,
@@ -538,6 +541,7 @@ function procesarFaena(data) {
     var dur = typeof p.duracion_seg === 'number' ? p.duracion_seg :
               typeof p.duracion     === 'number' ? p.duracion     : null;
     rawPanne.push({
+      orgId:    fOrgId,
       fecha:    fFecha,
       operador: fOp,
       sector:   fSector,
@@ -564,23 +568,23 @@ window.fetchData = async function() {
   var empFiltro = document.getElementById('fEmpresa').value || '';
 
   try {
-    if (!empFiltro) {
+    if (empFiltro) {
+      // ── Empresa específica seleccionada: cargar SOLO esa empresa ──
+      var s = await getDocs(collection(db,'organizaciones',empFiltro,'faenas'));
+      s.forEach(function(d){ procesarFaena(d.data(), empFiltro); });
+    } else {
+      // ── Sin filtro: cargar colección raíz + todas las organizaciones ──
       try {
         var r = await getDocs(collection(db,'faenas'));
-        r.forEach(function(d){ procesarFaena(d.data()); });
+        r.forEach(function(d){ procesarFaena(d.data(), '__raiz__'); });
       } catch(e){ console.warn('/faenas raíz:', e.message); }
-    }
 
-    if (empFiltro) {
-      var s = await getDocs(collection(db,'organizaciones',empFiltro,'faenas'));
-      s.forEach(function(d){ procesarFaena(d.data()); });
-    } else {
       try {
         var orgs = await getDocs(collection(db,'organizaciones'));
         for (var i=0;i<orgs.docs.length;i++){
           var od = orgs.docs[i];
           var fs = await getDocs(collection(db,'organizaciones',od.id,'faenas'));
-          fs.forEach(function(d){ procesarFaena(d.data()); });
+          fs.forEach(function(d){ procesarFaena(d.data(), od.id); });
         }
       } catch(e){ console.error('orgs:',e); }
     }
@@ -598,6 +602,7 @@ window.fetchData = async function() {
 
 /* ── FILTROS ── */
 function getFiltered() {
+  var emp  = document.getElementById('fEmpresa').value;
   var op   = document.getElementById('fOperador').value;
   var sec  = document.getElementById('fSector').value;
   var exc  = document.getElementById('fExcavadora').value;
@@ -606,42 +611,54 @@ function getFiltered() {
   var des  = document.getElementById('fDesde').value;
   var has  = document.getElementById('fHasta').value;
   return rawCiclos.filter(function(c){
-    if (op  && c.operador   !== op)  return false;
-    if (sec && c.sector     !== sec) return false;
-    if (exc && c.excavadora !== exc) return false;
-    if (cam && c.camion     !== cam) return false;
-    if (mat && c.material   !== mat) return false;
-    if (des && c.fecha < des)        return false;
-    if (has && c.fecha > has)        return false;
+    // Cuando hay empresa seleccionada, mostrar solo datos de esa empresa
+    // (rawCiclos ya contiene solo esa empresa, pero aplicamos igual como doble seguridad)
+    if (emp  && c.orgId     !== emp)  return false;
+    if (op   && c.operador  !== op)   return false;
+    if (sec  && c.sector    !== sec)  return false;
+    if (exc  && c.excavadora !== exc) return false;
+    if (cam  && c.camion    !== cam)  return false;
+    if (mat  && c.material  !== mat)  return false;
+    if (des  && c.fecha < des)        return false;
+    if (has  && c.fecha > has)        return false;
     return true;
   });
 }
 
 function getFilteredPanne() {
+  var emp = document.getElementById('fEmpresa').value;
   var op  = document.getElementById('fOperador').value;
   var sec = document.getElementById('fSector').value;
   var des = document.getElementById('fDesde').value;
   var has = document.getElementById('fHasta').value;
   return rawPanne.filter(function(p){
-    if (op  && p.operador !== op)  return false;
-    if (sec && p.sector   !== sec) return false;
-    if (des && p.fecha < des)      return false;
-    if (has && p.fecha > has)      return false;
+    if (emp && p.orgId    !== emp)  return false;
+    if (op  && p.operador !== op)   return false;
+    if (sec && p.sector   !== sec)  return false;
+    if (des && p.fecha < des)       return false;
+    if (has && p.fecha > has)       return false;
     return true;
   });
 }
 
 function populateFilters() {
+  // Usar solo los datos de la empresa seleccionada para llenar los filtros secundarios
+  var emp = document.getElementById('fEmpresa').value;
+  var source = emp
+    ? rawCiclos.filter(function(c){ return c.orgId === emp; })
+    : rawCiclos;
+
   function fill(id, key) {
     var sel = document.getElementById(id);
     var cur = sel.value;
-    var vals = [...new Set(rawCiclos.map(function(c){return c[key];}).filter(Boolean))].sort();
+    var vals = [...new Set(source.map(function(c){return c[key];}).filter(Boolean))].sort();
     while (sel.options.length > 1) sel.remove(1);
     vals.forEach(function(v){
       var o = document.createElement('option');
       o.value=v; o.textContent=v; sel.appendChild(o);
     });
     if (vals.includes(cur)) sel.value = cur;
+    else sel.value = '';
   }
   fill('fOperador','operador'); fill('fSector','sector');
   fill('fExcavadora','excavadora'); fill('fCamion','camion');
