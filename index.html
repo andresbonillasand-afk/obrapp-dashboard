@@ -393,7 +393,7 @@ Chart.register(CategoryScale, LinearScale, BarElement, LineElement,
 
 import { initializeApp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs }
+import { getFirestore, collection, getDocs, doc, getDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -571,19 +571,46 @@ window.fetchData = async function() {
 
   var debugLines = [];
 
+  // Nombres posibles de la subcolección según distintas versiones de la app
+  var SUBCOL_NAMES = ['faenas','registros','sesiones','datos','jornadas','turnos','cycles','records'];
+
   try {
     if (empFiltro) {
-      // ── Empresa específica: cargar SOLO esa empresa ──
-      debugLines.push('🔍 Buscando en: organizaciones/' + empFiltro + '/faenas');
-      var s = await getDocs(collection(db,'organizaciones',empFiltro,'faenas'));
-      debugLines.push('📄 Documentos encontrados: ' + s.docs.length);
-      s.forEach(function(d){
-        var dat = d.data();
-        var cicN = (dat.ciclosCompletados||dat.ciclos||[]).length;
-        var panN = (dat.panneHistorial||dat.panne||[]).length;
-        debugLines.push('  └ Doc: ' + d.id + ' | ciclos: ' + cicN + ' | panne: ' + panN + ' | fecha: ' + (dat.fecha||'?'));
-        procesarFaena(dat, empFiltro);
-      });
+      debugLines.push('🔍 Org: ' + empFiltro);
+
+      // Leer el documento de la organización para ver sus campos
+      var orgDocRef = doc(db, 'organizaciones', empFiltro);
+      var orgSnap   = await getDoc(orgDocRef);
+      if (orgSnap.exists()) {
+        var orgData = orgSnap.data();
+        debugLines.push('📋 Campos org: ' + Object.keys(orgData).join(', '));
+      } else {
+        debugLines.push('⚠️ Documento de org no existe');
+      }
+
+      // Probar todos los nombres posibles de subcolección
+      var encontrados = 0;
+      for (var ni=0; ni<SUBCOL_NAMES.length; ni++) {
+        var sname = SUBCOL_NAMES[ni];
+        try {
+          var sc = await getDocs(collection(db,'organizaciones',empFiltro,sname));
+          if (sc.docs.length > 0) {
+            debugLines.push('✅ SUBCOLECCIÓN "' + sname + '": ' + sc.docs.length + ' docs');
+            sc.forEach(function(d){
+              var dat = d.data();
+              var cicN = (dat.ciclosCompletados||dat.ciclos||[]).length;
+              var panN = (dat.panneHistorial||dat.panne||[]).length;
+              debugLines.push('  └ ' + d.id + ' | ciclos:' + cicN + ' | panne:' + panN + ' | campos: ' + Object.keys(dat).slice(0,6).join(','));
+              procesarFaena(dat, empFiltro);
+            });
+            encontrados += sc.docs.length;
+          } else {
+            debugLines.push('⬜ "' + sname + '": 0 docs');
+          }
+        } catch(e){ debugLines.push('❌ "' + sname + '": ' + e.message); }
+      }
+      debugLines.push('📊 Total cargado: ' + rawCiclos.length + ' ciclos');
+
     } else {
       // ── Sin filtro: colección raíz + todas las orgs ──
       try {
@@ -597,15 +624,23 @@ window.fetchData = async function() {
         debugLines.push('🏢 Organizaciones: ' + orgs.docs.length);
         for (var i=0;i<orgs.docs.length;i++){
           var od = orgs.docs[i];
-          var fs = await getDocs(collection(db,'organizaciones',od.id,'faenas'));
-          debugLines.push('  └ ' + od.id + ' (' + (od.data().nombre||'?') + '): ' + fs.docs.length + ' faenas');
-          fs.forEach(function(d){ procesarFaena(d.data(), od.id); });
+          // Probar todos los nombres de subcolección
+          for (var ni2=0; ni2<SUBCOL_NAMES.length; ni2++) {
+            try {
+              var fs = await getDocs(collection(db,'organizaciones',od.id,SUBCOL_NAMES[ni2]));
+              if (fs.docs.length > 0) {
+                debugLines.push('  └ ' + od.id + ' /' + SUBCOL_NAMES[ni2] + ': ' + fs.docs.length);
+                fs.forEach(function(d){ procesarFaena(d.data(), od.id); });
+                break; // usar la primera subcolección que tenga datos
+              }
+            } catch(e){}
+          }
         }
       } catch(e){ debugLines.push('❌ Error orgs: ' + e.message); }
     }
 
-    debugLines.push('✅ Total ciclos cargados: ' + rawCiclos.length + ' | PANNE: ' + rawPanne.length);
-    showBar(debugLines.join(' || '));
+    debugLines.push('✅ TOTAL FINAL — ciclos: ' + rawCiclos.length + ' | PANNE: ' + rawPanne.length);
+    showBar(debugLines.join('\n'));
     setStatus(true,'Actualizado '+new Date().toLocaleTimeString('es-CL'));
     populateFilters();
     renderAll();
