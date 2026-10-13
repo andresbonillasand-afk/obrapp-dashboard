@@ -27,7 +27,7 @@
   .tab:hover{color:#1a2340}
 
   /* ── STATUS BAR ── */
-  #statusBar{background:#fff3cd;color:#856404;padding:9px 24px;font-size:.82rem;border-bottom:1px solid #ffc107;display:none}
+  #statusBar{background:#e8f4fd;color:#1a5276;padding:9px 24px;font-size:.78rem;border-bottom:1px solid #aed6f1;display:none;font-family:monospace;line-height:1.6;white-space:pre-wrap;word-break:break-all}
 
   /* ── FILTERS ── */
   .filters{background:#fff;padding:14px 24px;border-bottom:1px solid #e8e8e8;box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -442,7 +442,9 @@ function setStatus(ok, txt) {
 }
 function showBar(msg) {
   var b = document.getElementById('statusBar');
-  b.textContent = msg; b.style.display = msg ? 'block' : 'none';
+  // Mostrar siempre el panel de diagnóstico para depuración
+  b.textContent = msg || '';
+  b.style.display = 'block';
 }
 function todayStr() {
   return new Date().toISOString().slice(0,10);
@@ -567,29 +569,43 @@ window.fetchData = async function() {
   rawCiclos = []; rawPanne = [];
   var empFiltro = document.getElementById('fEmpresa').value || '';
 
+  var debugLines = [];
+
   try {
     if (empFiltro) {
-      // ── Empresa específica seleccionada: cargar SOLO esa empresa ──
+      // ── Empresa específica: cargar SOLO esa empresa ──
+      debugLines.push('🔍 Buscando en: organizaciones/' + empFiltro + '/faenas');
       var s = await getDocs(collection(db,'organizaciones',empFiltro,'faenas'));
-      s.forEach(function(d){ procesarFaena(d.data(), empFiltro); });
+      debugLines.push('📄 Documentos encontrados: ' + s.docs.length);
+      s.forEach(function(d){
+        var dat = d.data();
+        var cicN = (dat.ciclosCompletados||dat.ciclos||[]).length;
+        var panN = (dat.panneHistorial||dat.panne||[]).length;
+        debugLines.push('  └ Doc: ' + d.id + ' | ciclos: ' + cicN + ' | panne: ' + panN + ' | fecha: ' + (dat.fecha||'?'));
+        procesarFaena(dat, empFiltro);
+      });
     } else {
-      // ── Sin filtro: cargar colección raíz + todas las organizaciones ──
+      // ── Sin filtro: colección raíz + todas las orgs ──
       try {
         var r = await getDocs(collection(db,'faenas'));
+        debugLines.push('📁 /faenas raíz: ' + r.docs.length + ' docs');
         r.forEach(function(d){ procesarFaena(d.data(), '__raiz__'); });
-      } catch(e){ console.warn('/faenas raíz:', e.message); }
+      } catch(e){ debugLines.push('⚠️ /faenas raíz: ' + e.message); }
 
       try {
         var orgs = await getDocs(collection(db,'organizaciones'));
+        debugLines.push('🏢 Organizaciones: ' + orgs.docs.length);
         for (var i=0;i<orgs.docs.length;i++){
           var od = orgs.docs[i];
           var fs = await getDocs(collection(db,'organizaciones',od.id,'faenas'));
+          debugLines.push('  └ ' + od.id + ' (' + (od.data().nombre||'?') + '): ' + fs.docs.length + ' faenas');
           fs.forEach(function(d){ procesarFaena(d.data(), od.id); });
         }
-      } catch(e){ console.error('orgs:',e); }
+      } catch(e){ debugLines.push('❌ Error orgs: ' + e.message); }
     }
 
-    showBar('');
+    debugLines.push('✅ Total ciclos cargados: ' + rawCiclos.length + ' | PANNE: ' + rawPanne.length);
+    showBar(debugLines.join(' || '));
     setStatus(true,'Actualizado '+new Date().toLocaleTimeString('es-CL'));
     populateFilters();
     renderAll();
