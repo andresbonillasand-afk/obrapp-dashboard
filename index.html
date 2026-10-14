@@ -27,7 +27,7 @@
   .tab:hover{color:#1a2340}
 
   /* ── STATUS BAR ── */
-  #statusBar{background:#e8f4fd;color:#1a5276;padding:9px 24px;font-size:.78rem;border-bottom:1px solid #aed6f1;display:none;font-family:monospace;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+  #statusBar{display:none}
 
   /* ── FILTERS ── */
   .filters{background:#fff;padding:14px 24px;border-bottom:1px solid #e8e8e8;box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -440,12 +440,7 @@ function setStatus(ok, txt) {
   document.getElementById('statusDot').style.background = ok ? '#27ae60' : '#e74c3c';
   document.getElementById('statusText').textContent = txt;
 }
-function showBar(msg) {
-  var b = document.getElementById('statusBar');
-  // Mostrar siempre el panel de diagnóstico para depuración
-  b.textContent = msg || '';
-  b.style.display = 'block';
-}
+function showBar(msg) { /* diagnóstico desactivado */ }
 function todayStr() {
   return new Date().toISOString().slice(0,10);
 }
@@ -559,93 +554,56 @@ function procesarFaena(data, orgId) {
   });
 }
 
+/* ── MAPA RUT → orgId (construido al cargar) ── */
+var rutToOrgId = {}; // { "11.111.111-1": "orgId123", ... }
+
+async function buildRutMap() {
+  // Lee usuarios de cada organización y mapea rut → orgId
+  rutToOrgId = {};
+  try {
+    var orgs = await getDocs(collection(db,'organizaciones'));
+    for (var i=0; i<orgs.docs.length; i++){
+      var od = orgs.docs[i];
+      try {
+        var usrs = await getDocs(collection(db,'organizaciones',od.id,'usuarios'));
+        usrs.forEach(function(u){
+          var d = u.data();
+          var rut = d.rut || d.rutUsuario || '';
+          if (rut) rutToOrgId[rut] = od.id;
+        });
+      } catch(e){}
+    }
+  } catch(e){ console.warn('buildRutMap:', e.message); }
+}
+
 /* ── FETCH ── */
 window.fetchData = async function() {
-  showBar('Conectando a Firebase...');
   setStatus(false,'Conectando...');
   var ok = await ensureAuth();
-  if (!ok){ showBar('Error de autenticación'); return; }
+  if (!ok){ setStatus(false,'Error auth'); return; }
 
   rawCiclos = []; rawPanne = [];
   var empFiltro = document.getElementById('fEmpresa').value || '';
 
-  var debugLines = [];
-
-  // Nombres posibles de la subcolección según distintas versiones de la app
-  var SUBCOL_NAMES = ['faenas','registros','sesiones','datos','jornadas','turnos','cycles','records'];
-
   try {
-    if (empFiltro) {
-      debugLines.push('🔍 Org: ' + empFiltro);
+    // 1. Reconstruir mapa RUT→orgId para poder asociar faenas a empresas
+    await buildRutMap();
 
-      // Leer el documento de la organización para ver sus campos
-      var orgDocRef = doc(db, 'organizaciones', empFiltro);
-      var orgSnap   = await getDoc(orgDocRef);
-      if (orgSnap.exists()) {
-        var orgData = orgSnap.data();
-        debugLines.push('📋 Campos org: ' + Object.keys(orgData).join(', '));
-      } else {
-        debugLines.push('⚠️ Documento de org no existe');
-      }
+    // 2. Leer TODA la colección /faenas (única fuente de datos)
+    var allFaenas = await getDocs(collection(db,'faenas'));
 
-      // Probar todos los nombres posibles de subcolección
-      var encontrados = 0;
-      for (var ni=0; ni<SUBCOL_NAMES.length; ni++) {
-        var sname = SUBCOL_NAMES[ni];
-        try {
-          var sc = await getDocs(collection(db,'organizaciones',empFiltro,sname));
-          if (sc.docs.length > 0) {
-            debugLines.push('✅ SUBCOLECCIÓN "' + sname + '": ' + sc.docs.length + ' docs');
-            sc.forEach(function(d){
-              var dat = d.data();
-              var cicN = (dat.ciclosCompletados||dat.ciclos||[]).length;
-              var panN = (dat.panneHistorial||dat.panne||[]).length;
-              debugLines.push('  └ ' + d.id + ' | ciclos:' + cicN + ' | panne:' + panN + ' | campos: ' + Object.keys(dat).slice(0,6).join(','));
-              procesarFaena(dat, empFiltro);
-            });
-            encontrados += sc.docs.length;
-          } else {
-            debugLines.push('⬜ "' + sname + '": 0 docs');
-          }
-        } catch(e){ debugLines.push('❌ "' + sname + '": ' + e.message); }
-      }
-      debugLines.push('📊 Total cargado: ' + rawCiclos.length + ' ciclos');
+    allFaenas.forEach(function(fd){
+      var data = fd.data();
+      // Determinar orgId según RUT del operador
+      var rut = (data.usuario && data.usuario.rut) || '';
+      var orgId = rutToOrgId[rut] || '__sin_org__';
+      procesarFaena(data, orgId);
+    });
 
-    } else {
-      // ── Sin filtro: colección raíz + todas las orgs ──
-      try {
-        var r = await getDocs(collection(db,'faenas'));
-        debugLines.push('📁 /faenas raíz: ' + r.docs.length + ' docs');
-        r.forEach(function(d){ procesarFaena(d.data(), '__raiz__'); });
-      } catch(e){ debugLines.push('⚠️ /faenas raíz: ' + e.message); }
-
-      try {
-        var orgs = await getDocs(collection(db,'organizaciones'));
-        debugLines.push('🏢 Organizaciones: ' + orgs.docs.length);
-        for (var i=0;i<orgs.docs.length;i++){
-          var od = orgs.docs[i];
-          // Probar todos los nombres de subcolección
-          for (var ni2=0; ni2<SUBCOL_NAMES.length; ni2++) {
-            try {
-              var fs = await getDocs(collection(db,'organizaciones',od.id,SUBCOL_NAMES[ni2]));
-              if (fs.docs.length > 0) {
-                debugLines.push('  └ ' + od.id + ' /' + SUBCOL_NAMES[ni2] + ': ' + fs.docs.length);
-                fs.forEach(function(d){ procesarFaena(d.data(), od.id); });
-                break; // usar la primera subcolección que tenga datos
-              }
-            } catch(e){}
-          }
-        }
-      } catch(e){ debugLines.push('❌ Error orgs: ' + e.message); }
-    }
-
-    debugLines.push('✅ TOTAL FINAL — ciclos: ' + rawCiclos.length + ' | PANNE: ' + rawPanne.length);
-    showBar(debugLines.join('\n'));
     setStatus(true,'Actualizado '+new Date().toLocaleTimeString('es-CL'));
     populateFilters();
     renderAll();
   } catch(e){
-    showBar('Error: '+e.message);
     setStatus(false,'Error');
     console.error(e);
   }
